@@ -11,6 +11,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.work.*
 import java.util.concurrent.TimeUnit
+import com.example.calllogger.utils.Logger
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -26,7 +27,9 @@ class MainActivity : AppCompatActivity() {
 
         // Check if phone number is already saved
         val prefs = SharedPrefs(this)
-        if (prefs.getPhoneNumber().isNotEmpty()) {
+        val savedPhoneNumber = prefs.getPhoneNumber()
+        if (savedPhoneNumber.isNotEmpty()) {
+            Logger.d("Found saved phone number: $savedPhoneNumber")
             // Phone number exists, just check permissions and schedule work
             checkPermissionAndScheduleWork()
         }
@@ -34,6 +37,7 @@ class MainActivity : AppCompatActivity() {
         submitButton.setOnClickListener {
             val phoneNumber = phoneInput.text.toString()
             if (phoneNumber.isNotEmpty()) {
+                Logger.d("Saving new phone number: $phoneNumber")
                 prefs.savePhoneNumber(phoneNumber)
                 checkPermissionAndScheduleWork()
             } else {
@@ -48,12 +52,14 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.READ_CALL_LOG
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            Logger.d("Requesting READ_CALL_LOG permission")
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.READ_CALL_LOG),
                 PERMISSION_REQUEST_CODE
             )
         } else {
+            Logger.d("Permission already granted, scheduling work")
             scheduleWork()
         }
     }
@@ -63,7 +69,8 @@ class MainActivity : AppCompatActivity() {
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val workRequest = PeriodicWorkRequestBuilder<CallLogWorker>(2, TimeUnit.HOURS)
+        // For testing: Run every 15 minutes instead of 2 hours
+        val workRequest = PeriodicWorkRequestBuilder<CallLogWorker>(15, TimeUnit.MINUTES)
             .setConstraints(constraints)
             .build()
 
@@ -73,6 +80,7 @@ class MainActivity : AppCompatActivity() {
             workRequest
         )
 
+        Logger.d("Work scheduled successfully")
         Toast.makeText(this, "Call logging service started", Toast.LENGTH_SHORT).show()
         finish()
     }
@@ -86,8 +94,10 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
+            Logger.d("Permission granted by user")
             scheduleWork()
         } else {
+            Logger.w("Permission denied by user")
             Toast.makeText(
                 this,
                 "Call log permission is required for this app to work",

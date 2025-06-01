@@ -4,25 +4,37 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
-import retrofit2.http.Header
 import retrofit2.http.POST
+import com.example.calllogger.utils.Logger
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 
 interface ApiService {
-    @POST("api/method/custom_app.api.receive_call_log")
+    @POST("bc3761b2-eed8-47c8-9b9a-6359c4f42220")
     suspend fun sendCallLogs(
-        @Header("Authorization") auth: String,
         @Body payload: CallLogPayload
     ): Response<Unit>
 }
 
 object ApiClient {
-    private const val BASE_URL = "YOUR_ERPNEXT_URL" // Replace with your ERPNext URL
-    private const val API_KEY = "YOUR_API_KEY" // Replace with your API key
-    private const val API_SECRET = "YOUR_API_SECRET" // Replace with your API secret
+    private const val BASE_URL = "https://webhook.site/"
 
     fun create(): ApiService {
+        Logger.d("Creating API client with BASE_URL: $BASE_URL")
+        
+        val logging = HttpLoggingInterceptor { message -> 
+            Logger.d("OkHttp: $message") 
+        }.apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        
+        val client = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()
+
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
+            .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
@@ -30,13 +42,13 @@ object ApiClient {
 
     suspend fun sendCallLogs(phoneNumber: String, calls: List<CallData>): Response<Unit> {
         val service = create()
-        val auth = "token $API_KEY:$API_SECRET"
         val payload = CallLogPayload(phoneNumber, calls)
-        return service.sendCallLogs(auth, payload)
+        Logger.d("Making API request to: $BASE_URL")
+        return service.sendCallLogs(payload)
     }
 }
 
 data class CallLogPayload(
     val phone_number: String,
     val calls: List<CallData>
-) 
+)
