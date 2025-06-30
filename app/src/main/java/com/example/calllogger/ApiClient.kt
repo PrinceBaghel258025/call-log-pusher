@@ -17,7 +17,7 @@ interface ApiService {
 }
 
 object ApiClient {
-    private const val BASE_URL = "https://webhook.site/"
+    private const val BASE_URL = "https://xgx0jdhm-8000.inc1.devtunnels.ms/api/method/vastu_vihar.vastu_vihar.custom_script.lead.call_logs/"
 
     fun create(): ApiService {
         Logger.d("Creating API client with BASE_URL: $BASE_URL")

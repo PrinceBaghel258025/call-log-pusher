@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
 
         val phoneInput = findViewById<EditText>(R.id.phoneInput)
         val submitButton = findViewById<Button>(R.id.submitButton)
+        val testButton = findViewById<Button>(R.id.testButton)
 
         // Check if phone number is already saved
         val prefs = SharedPrefs(this)
@@ -43,6 +44,11 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Please enter a valid phone number", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        testButton.setOnClickListener {
+            Logger.d("Manually triggering worker for testing")
+            triggerWorkerNow()
         }
     }
 
@@ -67,22 +73,54 @@ class MainActivity : AppCompatActivity() {
     private fun scheduleWork() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(false) // Allow work even when battery is low
             .build()
 
-        // For testing: Run every 15 minutes instead of 2 hours
+        // Use 15 minutes as minimum interval for periodic work
+        // WorkManager has a minimum interval of 15 minutes
         val workRequest = PeriodicWorkRequestBuilder<CallLogWorker>(15, TimeUnit.MINUTES)
             .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.MINUTES)
             .build()
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "CallLogSync",
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE, // Replace existing work to ensure it runs
             workRequest
         )
 
-        Logger.d("Work scheduled successfully")
+        Logger.d("Work scheduled successfully for every 15 minutes")
+        
+        // Check and log current work status
+        checkWorkStatus()
+        
         Toast.makeText(this, "Call logging service started", Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun checkWorkStatus() {
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("CallLogSync")
+            .observe(this) { workInfos ->
+                Logger.d("Current work status: ${workInfos.size} work infos")
+                workInfos.forEach { workInfo ->
+                    Logger.d("Work ID: ${workInfo.id}, State: ${workInfo.state}, Tags: ${workInfo.tags}")
+                }
+            }
+    }
+
+    private fun triggerWorkerNow() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .setRequiresBatteryNotLow(false)
+            .build()
+
+        val workRequest = OneTimeWorkRequestBuilder<CallLogWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueue(workRequest)
+        Logger.d("One-time worker triggered for testing")
+        Toast.makeText(this, "Test worker triggered", Toast.LENGTH_SHORT).show()
     }
 
     override fun onRequestPermissionsResult(

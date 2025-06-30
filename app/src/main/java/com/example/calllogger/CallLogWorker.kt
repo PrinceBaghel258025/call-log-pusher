@@ -1,6 +1,7 @@
 package com.example.calllogger
 
 import android.content.Context
+import android.net.ConnectivityManager
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.example.calllogger.utils.Logger
@@ -14,6 +15,8 @@ class CallLogWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
+            val currentTime = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            Logger.i("=== CallLogWorker started at $currentTime ===")
             Logger.i("Starting call log sync...")
             
             val phoneNumber = SharedPrefs(context).getPhoneNumber()
@@ -23,11 +26,20 @@ class CallLogWorker(
             }
             Logger.d("Phone number retrieved: $phoneNumber")
 
+            // Check if we have network connectivity
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val networkInfo = connectivityManager.activeNetworkInfo
+            if (networkInfo == null || !networkInfo.isConnected) {
+                Logger.w("No network connectivity, will retry later")
+                return@withContext Result.retry()
+            }
+            Logger.d("Network connectivity confirmed")
+
             val calls = CallUtils.getCallLogs(context)
             Logger.d("Retrieved ${calls.size} calls to sync")
             
             if (calls.isEmpty()) {
-                Logger.i("No new calls to sync")
+                Logger.i("No calls found in the last 24 hours")
                 return@withContext Result.success()
             }
 
