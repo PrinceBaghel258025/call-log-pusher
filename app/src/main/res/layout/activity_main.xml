@@ -35,4 +35,11 @@
         android:layout_marginTop="8dp"
         android:text="Test Worker Now" />
 
+    <Button
+        android:id="@+id/resetSyncButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Reset Sync Time" />
+
 </LinearLayout> 

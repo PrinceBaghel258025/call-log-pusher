@@ -37,6 +37,22 @@ android {
         viewBinding true
         buildConfig true
     }
+    signingConfigs {
+        release {
+            storeFile file("my-release-key.jks")
+            storePassword "123456"
+            keyAlias "my-key-alias"
+            keyPassword "123456"
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false // or true, if using ProGuard
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
 }
 
 dependencies {

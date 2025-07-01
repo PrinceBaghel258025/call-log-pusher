@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
         val phoneInput = findViewById<EditText>(R.id.phoneInput)
         val submitButton = findViewById<Button>(R.id.submitButton)
         val testButton = findViewById<Button>(R.id.testButton)
+        val resetSyncButton = findViewById<Button>(R.id.resetSyncButton)
 
         // Check if phone number is already saved
         val prefs = SharedPrefs(this)
@@ -33,6 +34,15 @@ class MainActivity : AppCompatActivity() {
             Logger.d("Found saved phone number: $savedPhoneNumber")
             // Phone number exists, just check permissions and schedule work
             checkPermissionAndScheduleWork()
+        }
+
+        // Show current sync status
+        val lastSyncTime = prefs.getLastSyncTime()
+        if (lastSyncTime > 0L) {
+            val lastSyncFormatted = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(lastSyncTime))
+            Logger.d("Last sync time: $lastSyncFormatted")
+        } else {
+            Logger.d("No previous sync found")
         }
 
         submitButton.setOnClickListener {
@@ -49,6 +59,12 @@ class MainActivity : AppCompatActivity() {
         testButton.setOnClickListener {
             Logger.d("Manually triggering worker for testing")
             triggerWorkerNow()
+        }
+
+        resetSyncButton.setOnClickListener {
+            Logger.d("Resetting last sync time")
+            prefs.resetLastSyncTime()
+            Toast.makeText(this, "Sync time reset. Next sync will collect calls from last 24 hours.", Toast.LENGTH_LONG).show()
         }
     }
 

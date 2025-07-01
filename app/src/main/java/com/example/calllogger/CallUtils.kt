@@ -6,11 +6,13 @@ import android.provider.CallLog.Calls.*
 import com.example.calllogger.utils.Logger
 
 object CallUtils {
-    fun getCallLogs(context: Context): List<CallData> {
+    fun getCallLogs(context: Context, sinceTimestamp: Long = 0L): List<CallData> {
         val calls = mutableListOf<CallData>()
         
-        // Get calls from the last 24 hours instead of 2 hours to ensure we don't miss any
-        val cutoffTime = System.currentTimeMillis() - (24 * 60 * 60 * 1000) // 24 hours ago
+        // Use provided timestamp or default to 24 hours ago for first run
+        val cutoffTime = if (sinceTimestamp > 0L) sinceTimestamp else {
+            System.currentTimeMillis() - (24 * 60 * 60 * 1000) // 24 hours ago
+        }
         
         Logger.d("Fetching calls since: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(cutoffTime))}")
 
@@ -37,7 +39,7 @@ object CallUtils {
             val dateColumn = cursor.getColumnIndex(DATE)
             val durationColumn = cursor.getColumnIndex(DURATION)
 
-            Logger.d("Found ${cursor.count} total calls in the last 24 hours")
+            Logger.d("Found ${cursor.count} total calls since last sync")
 
             while (cursor.moveToNext()) {
                 val number = cursor.getString(numberColumn)
